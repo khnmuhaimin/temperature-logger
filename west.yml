@@ -5,6 +5,7 @@ manifest:
 
   self:
     path: app
+    west-commands: scripts/west-commands.yml
 
   remotes:
     - name: zephyrproject-rtos

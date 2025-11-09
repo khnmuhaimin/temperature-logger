@@ -1,0 +1,6 @@
+west-commands:
+  - file: scripts/quick_build_command.py
+    commands:
+      - name: quick-build
+        class: QuickBuildCommand
+        help: Shortcut to building stuff quickly

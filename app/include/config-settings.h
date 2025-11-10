@@ -13,9 +13,9 @@ struct config_settings_t
     char wifi_password[WIFI_PASSWORD_MAX_LENGTH + 1];
 };
 
-struct config_settings_t* get_config_settings(void);
-void reset_config_settings(struct config_settings_t* c);
-enum error_e load_config_settings(struct config_settings_t* c);
-enum error_e store_config_settings(struct config_settings_t* c);
+enum error_e init_config_settings(void);
+void reset_config_settings(struct config_settings_t *c);
+void load_config_settings(struct config_settings_t *c);
+enum error_e store_config_settings(struct config_settings_t *c);
 
 #endif

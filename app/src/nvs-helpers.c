@@ -38,7 +38,7 @@ enum error_e init_nvs()
         return E_ERROR;
     }
     fs.sector_size = info.size;
-    fs.sector_count = 3U;
+    fs.sector_count = 3U;  // TODO: figure out the best sector count size
 
     err = nvs_mount(&fs);
     if (err)

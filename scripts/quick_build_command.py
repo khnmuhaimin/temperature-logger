@@ -6,7 +6,7 @@ from west.commands import WestCommand
 
 class QuickBuildCommand(WestCommand):
 
-    valid_targets = ('app', 'bootloader', 'menuconfig')
+    valid_targets = ('app', 'bootloader', 'menuconfig', "*-test")
 
     def __init__(self):
         super().__init__(
@@ -33,11 +33,11 @@ class QuickBuildCommand(WestCommand):
 
     def do_run(self, args, unknown_args):
         
-        target = args.target
-        clean = args.clean
+        target: str = args.target
+        clean: bool = args.clean
 
         # confirm that target is valid
-        if target not in QuickBuildCommand.valid_targets:
+        if target not in QuickBuildCommand.valid_targets and not target.endswith('-test'):
             valid_targets_string = ', '.join(QuickBuildCommand.valid_targets)
             self.die(f'Invalid target. Valid targets are: {valid_targets_string}')
 
@@ -48,6 +48,10 @@ class QuickBuildCommand(WestCommand):
         elif target == 'bootloader':
             build_dir = os.path.join(self.manifest.topdir, f'build-bootloader')
             source_dir = os.path.join(self.manifest.topdir, f'bootloader/mcuboot/boot/zephyr')
+        elif target.endswith('-test'):
+            build_dir = os.path.join(self.manifest.topdir, f'build-{target}')
+            source_dir = os.path.join(self.manifest.topdir, 'temperature-logger/app/tests', target)
+
 
         if clean and os.path.exists(build_dir):
             try:
@@ -60,7 +64,7 @@ class QuickBuildCommand(WestCommand):
         os.makedirs(build_dir, exist_ok=True)
 
         # get commnad
-        if target == 'app':
+        if target == 'app' or target.endswith('-test'):
             command = f'west build -b esp32_devkitc/esp32/procpu -d {build_dir} {source_dir} -- -DDTC_OVERLAY_FILE="boards/esp32-overlay.dts"'
         elif target == 'bootloader':
             command = f'west build -b esp32_devkitc/esp32/procpu -d {build_dir} {source_dir}'

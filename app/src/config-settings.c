@@ -99,6 +99,8 @@ static enum error_e load_main_config_settings(void)
         // for some reason, the read failed
         reset_config_settings(&config_settings);
         err = E_ERROR;
+    } else {
+        err = E_SUCCESS;
     }
 
     k_mutex_unlock(&config_settings_mutex);
@@ -115,7 +117,8 @@ static enum error_e load_main_config_settings(void)
 enum error_e init_config_settings(void)
 {
     k_mutex_init(&config_settings_mutex);
-    return load_main_config_settings();
+    enum error_e err = load_main_config_settings();
+    return err;
 }
 
 /**
@@ -174,7 +177,7 @@ enum error_e store_config_settings(struct config_settings_t *c)
     }
     struct nvs_fs *fs = get_nvs_fs();
     k_mutex_lock(&config_settings_mutex, K_FOREVER);
-    ssize_t bytes_written = nvs_write(fs, NVS_KEY_CONFIG_SETTINGS, &c, sizeof(struct config_settings_t));
+    ssize_t bytes_written = nvs_write(fs, NVS_KEY_CONFIG_SETTINGS, c, sizeof(struct config_settings_t));
     enum error_e err = bytes_written == sizeof(struct config_settings_t) || bytes_written == 0 ? E_SUCCESS : E_ERROR;
     if (err == E_SUCCESS)
     {

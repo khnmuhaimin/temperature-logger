@@ -1,18 +1,3 @@
 menu "Zephyr"
 source "Kconfig.zephyr"
 endmenu
-
-module = APP
-module-str = APP
-source "subsys/logging/Kconfig.template.log_config"
-
-menu "Application Testing and Debugging"
-
-config APP_RUN_CONFIG_SETTINGS_TEST
-
-    bool "Run config settings module test"
-    default n
-    help
-        Builds the test for the config settings module (instead of the production app).
-
-endmenu

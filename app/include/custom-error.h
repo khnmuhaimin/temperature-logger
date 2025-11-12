@@ -3,6 +3,7 @@
 
 #define GENERAL_ERROR_BASE 0
 #define CONFIG_SERVER_ERROR_BASE 100
+#define WIFI_ERROR_BASE 200
 
 enum error_e
 {
@@ -46,9 +47,14 @@ enum error_e
     // my own stuff
 
     E_NULL_PTR,
+    E_ALREADY_DONE,
+    E_IN_PROGRESS,
 
     // config server errors
     // CONFIG_SERVER_ERROR_BASE
+
+    E_WIFI_LOGINS_NOT_SET,
+    E_WIFI_LOGINS_INVALID,
 };
 
 #endif

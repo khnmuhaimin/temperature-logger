@@ -5,7 +5,7 @@ project(app LANGUAGES C)
 
 zephyr_include_directories("./../../include")
 
-file(GLOB APP_SOURCES "./../../src/*.c")
-list(REMOVE_ITEM APP_SOURCES "./../../src/main.c")
-list(APPEND APP_SOURCES "./main.c")
+file(GLOB APP_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/../../src/*.c")
+list(REMOVE_ITEM APP_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/../../src/main.c")
+list(APPEND APP_SOURCES "main.c")
 target_sources(app PRIVATE ${APP_SOURCES})

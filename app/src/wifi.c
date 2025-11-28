@@ -20,7 +20,7 @@ LOG_MODULE_REGISTER(app_wifi, LOG_LEVEL_DBG);
                              NET_EVENT_WIFI_AP_STA_CONNECTED |  \
                              NET_EVENT_WIFI_AP_STA_DISCONNECTED)
 
-static struct wifi_data_t
+struct wifi_data_t
 {
     struct wifi_state_t wifi_state;
     // Credentials used for the last STA attempt

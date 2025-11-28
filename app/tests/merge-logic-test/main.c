@@ -38,13 +38,182 @@ void reset_list_data(struct temperature_list_t *t)
 void run_test_cases(struct temperature_list_t *src1, struct temperature_list_t *src2, struct temperature_list_t *dest)
 {
     enum error_e err;
-    const size_t MAX_CAPACITY = 6; // Assuming CONFIG_TEMPERATURE_LOGGER_BUFFER_SIZE is 6
 
-    // ... [TEST CASES 1, 2, and 3 remain here, unchanged] ...
-    
+    // =======================================================================
+
+    // TEST CASE 1: Sequential Merge (No Overlap, Perfect Uniform Sampling)
+
+    // =======================================================================
+
+    LOG_INF("\n\n=============== STARTING TEST CASE 1: Sequential Merge ===============");
+
+    reset_list_data(src1);
+
+    reset_list_data(src2);
+
+    reset_list_data(dest);
+
+    // src1: 10 min, 10.0°C (160 raw) -> 20 min, 30.0°C (480 raw)
+
+    src1->data[0] = (struct temperature_sample_t){.uptime = 10, .temperature = 160};
+
+    src1->data[1] = (struct temperature_sample_t){.uptime = 20, .temperature = 480};
+
+    src1->length = 2;
+
+    // src2: 30 min, 50.0°C (800 raw) -> 40 min, 70.0°C (1120 raw)
+
+    src2->data[0] = (struct temperature_sample_t){.uptime = 30, .temperature = 800};
+
+    src2->data[1] = (struct temperature_sample_t){.uptime = 40, .temperature = 1120};
+
+    src2->length = 2;
+
+    // We assume CONFIG_TEMPERATURE_LOGGER_BUFFER_SIZE >= 4
+
+    err = merge_temperature_lists(src1, src2, dest);
+
+    LOG_INF("Test 1 Inputs:");
+
+    print_list("Src1", src1);
+
+    print_list("Src2", src2);
+
+    if (err == E_SUCCESS)
+
+    {
+
+        LOG_INF("TEST 1 SUCCESS: Sequential Merge completed. Expected length 4.");
+
+        print_list("Result", dest);
+    }
+
+    else
+
+    {
+
+        LOG_ERR("TEST 1 FAILED with error: %d", err);
+    }
+
+    // =======================================================================
+
+    // TEST CASE 2: Overlap and Interpolation
+
+    // Goal: Test iterator hopping and non-exact-point interpolation.
+
+    // =======================================================================
+
+    LOG_INF("\n\n=============== STARTING TEST CASE 2: Overlap and Interpolation ===============");
+
+    reset_list_data(src1);
+
+    reset_list_data(src2);
+
+    reset_list_data(dest);
+
+    // src1 (Slow change): 10 min, 10.0°C (160) -> 50 min, 50.0°C (800)
+
+    src1->data[0] = (struct temperature_sample_t){.uptime = 10, .temperature = 160};
+
+    src1->data[1] = (struct temperature_sample_t){.uptime = 50, .temperature = 800};
+
+    src1->length = 2;
+
+    // src2 (Fast change): 20 min, 20.0°C (320) -> 30 min, 40.0°C (640)
+
+    src2->data[0] = (struct temperature_sample_t){.uptime = 20, .temperature = 320};
+
+    src2->data[1] = (struct temperature_sample_t){.uptime = 30, .temperature = 640};
+
+    src2->length = 2;
+
+    // Expected: start=10, end=50. Duration=40 min. Target length=5. Period=8 min.
+
+    // Merge Uptime points: 10, 18, 26, 34, 42
+
+    err = merge_temperature_lists(src1, src2, dest);
+
+    LOG_INF("Test 2 Inputs:");
+
+    print_list("Src1", src1);
+
+    print_list("Src2", src2);
+
+    if (err == E_SUCCESS)
+
+    {
+
+        LOG_INF("TEST 2 SUCCESS: Overlap Merge completed. Expected length 5.");
+
+        print_list("Result", dest);
+    }
+
+    else
+
+    {
+
+        LOG_ERR("TEST 2 FAILED with error: %d", err);
+    }
+
+    // =======================================================================
+
+    // TEST CASE 3: Edge Case (Copy-Only)
+
+    // =======================================================================
+
+    LOG_INF("\n\n=============== STARTING TEST CASE 3: Copy-Only Check ===============");
+
+    reset_list_data(src1);
+
+    reset_list_data(src2);
+
+    reset_list_data(dest);
+
+    // Case 3A: Both empty
+
+    err = merge_temperature_lists(src1, src2, dest);
+
+    if (err == E_SUCCESS && dest->length == 0)
+
+    {
+
+        LOG_INF("TEST 3A SUCCESS: Both empty lists result in empty dest.");
+    }
+
+    else
+
+    {
+
+        LOG_ERR("TEST 3A FAILED: Expected success and 0 length, got err=%d, len=%zu", err, dest->length);
+    }
+
+    // Case 3B: Only src1 empty (src2 copied to dest)
+
+    reset_list_data(src2);
+
+    src2->data[0] = (struct temperature_sample_t){.uptime = 1, .temperature = 100};
+
+    src2->length = 1;
+
+    err = merge_temperature_lists(src1, src2, dest);
+
+    if (err == E_SUCCESS && dest->length == 1)
+
+    {
+
+        LOG_INF("TEST 3B SUCCESS: One empty list resulted in direct copy.");
+    }
+
+    else
+
+    {
+
+        LOG_ERR("TEST 3B FAILED: Expected success and 1 length, got err=%d, len=%zu", err, dest->length);
+    }
+
     // =======================================================================
     // TEST CASE 4: Capacity Boundary (Fidelity Check)
-    // Goal: Test that merge_without_decimation is called when total length 
+    // Goal: Test that merge_without_decimation is called when total length
     //       EXACTLY equals CONFIG_TEMPERATURE_LOGGER_BUFFER_SIZE (6).
     // =======================================================================
     LOG_INF("\n\n=============== STARTING TEST CASE 4: Capacity Boundary ===============");
@@ -80,10 +249,10 @@ void run_test_cases(struct temperature_list_t *src1, struct temperature_list_t *
     {
         LOG_ERR("TEST 4 FAILED: Expected success and length 6, got err=%d, len=%zu", err, dest->length);
     }
-    
+
     // =======================================================================
     // TEST CASE 5: Max Decimation (Inputs > Capacity)
-    // Goal: Test that merge_with_decimation is called and decimates 12 inputs 
+    // Goal: Test that merge_with_decimation is called and decimates 12 inputs
     //       into 6 uniformly spaced samples.
     // =======================================================================
     LOG_INF("\n\n=============== STARTING TEST CASE 5: Max Decimation ===============");
@@ -94,23 +263,25 @@ void run_test_cases(struct temperature_list_t *src1, struct temperature_list_t *
     // Fill both lists to max capacity: Length 6 each. Total 12.
     // Create a smooth temperature ramp from 10.0°C to 11.0°C (raw 160 to 176) over 50 minutes.
     // The samples are intentionally dense (12 samples in 50 minutes).
-    
+
     // Total Duration: 50 min. Target Length: 6.
     // Expected Period: 50 / (6-1) = 10 min.
     // Expected Uptime Points: 10, 20, 30, 40, 50, 60 (6 points)
 
     // Populate src1 (10 min to 35 min)
-    for (size_t i = 0; i < 6; i++) {
+    for (size_t i = 0; i < 6; i++)
+    {
         src1->data[i] = (struct temperature_sample_t){.uptime = 10 + (i * 5), .temperature = 160 + (i * 3)};
     }
     src1->length = 6;
-    
+
     // Populate src2 (40 min to 65 min)
-    for (size_t i = 0; i < 6; i++) {
+    for (size_t i = 0; i < 6; i++)
+    {
         src2->data[i] = (struct temperature_sample_t){.uptime = 40 + (i * 5), .temperature = 178 + (i * 3)};
     }
     src2->length = 6;
-    
+
     // Total Length = 12. Capacity = 6. Should use merge_with_decimation.
     // Max uptime point is src2[5].uptime = 65 min.
     // start=10, end=65. Duration = 55 min. Target Length=6. Period = 55 / 5 = 11 min.

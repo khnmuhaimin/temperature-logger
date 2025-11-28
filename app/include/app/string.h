@@ -1,5 +1,5 @@
-#ifndef STRING_HELPERS_H
-#define STRING_HELPERS_H
+#ifndef APP_STRING_H
+#define APP_STRING_H
 
 #include <stdbool.h>
 #include <stdlib.h>

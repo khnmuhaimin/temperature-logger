@@ -1,5 +1,5 @@
-#ifndef CONSTANTS_H
-#define CONSTANTS_H
+#ifndef APP_CONSTANTS_H
+#define APP_CONSTANTS_H
 
 // constants below exclude the null char
 #define WIFI_SSID_MAX_LENGTH 32

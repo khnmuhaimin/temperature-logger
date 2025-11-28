@@ -1,8 +1,8 @@
-#ifndef CONFIG_SETTINGS_H
-#define CONFIG_SETTINGS_H
+#ifndef APP_CONFIG_SETTINGS_H
+#define APP_CONFIG_SETTINGS_H
 
-#include "custom-error.h"
-#include "constants.h"
+#include "app/error.h"
+#include "app/constants.h"
 
 #define RESET_WIFI_SSID_VALUE 0xFF
 #define RESET_WIFI_PASSWORD_VALUE 0xFF

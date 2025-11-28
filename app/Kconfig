@@ -1,3 +1,18 @@
-menu "Zephyr"
-source "Kconfig.zephyr"
-endmenu
+config TEMPERATURE_LOGGER_BUFFER_SIZE
+    int "Temperature Logger Data Point Buffer Length"
+    default 576
+    range 2 1024  # Set a practical range (min 2, max 1024)
+    help
+      Sets the maximum number of temperature data points that can be stored
+      in the internal memory buffer before downsampling occurs.
+
+      Note: This value should be an even number to ensure proper memory
+      alignment and symmetry if data merging logic relies on pairs.
+      (Current setting: 576 data points = 2 days @ 5 minute sampling).
+
+config BUILD_TEST_APP
+    bool "Build application for test execution"
+    default n
+    help
+      If enabled, the main application's entry point (main.c) is excluded
+      and replaced by a test suite runner's main() function.

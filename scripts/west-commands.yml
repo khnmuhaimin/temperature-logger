@@ -4,3 +4,9 @@ west-commands:
       - name: quick-build
         class: QuickBuildCommand
         help: Shortcut to building stuff quickly
+
+  - file: scripts/analyze_backtrace_command.py
+    commands:
+      - name: analyze-backtrace
+        class: AnalyzeBacktraceCommand
+        help: Shortcut to analyze backtrace

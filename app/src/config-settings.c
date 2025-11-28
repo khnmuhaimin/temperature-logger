@@ -23,9 +23,9 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/fs/nvs.h>
-#include "config-settings.h"
-#include "nvs-helpers.h"
-#include "string-helpers.h"
+#include "app/config-settings.h"
+#include "app/nvs.h"
+#include "app/string.h"
 
 static struct config_settings_t config_settings = {0};
 static struct k_mutex config_settings_mutex = {0};

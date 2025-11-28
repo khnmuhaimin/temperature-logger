@@ -3,7 +3,7 @@
 #include <zephyr/storage/flash_map.h>
 #include <zephyr/fs/nvs.h>
 #include <zephyr/logging/log.h>
-#include "custom-error.h"
+#include "app/error.h"
 
 LOG_MODULE_REGISTER(nvs_helpers, LOG_LEVEL_WRN);
 
@@ -46,6 +46,7 @@ enum error_e init_nvs()
         LOG_ERR("Failed to mount NVS file system.");
         return E_ERROR;
     }
+    return E_SUCCESS;
 }
 
 struct nvs_fs* get_nvs_fs(void) {

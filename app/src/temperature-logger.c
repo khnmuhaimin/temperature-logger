@@ -26,7 +26,20 @@ static struct temperature_logger_data_t t_data = {
     .scratch_temperature_list.lock = Z_MUTEX_INITIALIZER(t_data.scratch_temperature_list.lock),
     .temperature_sensor = DEVICE_DT_GET_ANY(maxim_ds18b20)};
 
-enum error_e reset_temperature_list(struct temperature_list_t *t)
+enum error_e init_temperature_logger(void) {
+    if (t_data.temperature_sensor == NULL) {
+        LOG_ERR("Temperature sensor device was not found.");
+        return E_ERROR;
+    }
+
+    if (!device_is_ready(t_data.temperature_sensor)) {
+        LOG_ERR("Temperature sensor device is not ready.");
+        return E_ERROR;
+    }
+    return E_SUCCESS;
+}
+
+EXPOSE_FOR_TESTING enum error_e reset_temperature_list(struct temperature_list_t *t)
 {
     if (t == NULL)
     {
@@ -38,7 +51,7 @@ enum error_e reset_temperature_list(struct temperature_list_t *t)
     return E_SUCCESS;
 }
 
-enum error_e load_temperature_list(struct temperature_list_t *t)
+EXPOSE_FOR_TESTING enum error_e load_temperature_list(struct temperature_list_t *t)
 {
     if (t == NULL)
     {
@@ -54,13 +67,14 @@ enum error_e load_temperature_list(struct temperature_list_t *t)
     if (bytes_read == -ENOENT)
     {
         // key does not exist. create key
-        memset(t, 0, offsetof(struct temperature_list_t, lock));
-        nvs_write(fs, NVS_KEY_CONFIG_SETTINGS, t, offsetof(struct temperature_list_t, lock));
+        reset_temperature_list(t);
+        nvs_write(fs, NVS_KEY_TEMPERATURE_DATA, t, offsetof(struct temperature_list_t, lock));
         err = E_SUCCESS;
     }
     else if (bytes_read != offsetof(struct temperature_list_t, lock))
     {
         // for some reason, the read failed
+        LOG_ERR("Failed to load temperature list from NVS.");
         err = E_ERROR;
     }
     else
@@ -72,7 +86,7 @@ enum error_e load_temperature_list(struct temperature_list_t *t)
     return err;
 }
 
-enum error_e store_temperature_list(struct temperature_list_t *t)
+EXPOSE_FOR_TESTING enum error_e store_temperature_list(struct temperature_list_t *t)
 {
     if (t == NULL)
     {
@@ -81,13 +95,13 @@ enum error_e store_temperature_list(struct temperature_list_t *t)
 
     struct nvs_fs *fs = get_nvs_fs();
     k_mutex_lock(&t->lock, K_FOREVER);
-    ssize_t bytes_written = nvs_write(fs, NVS_KEY_CONFIG_SETTINGS, t, offsetof(struct temperature_list_t, lock));
+    ssize_t bytes_written = nvs_write(fs, NVS_KEY_TEMPERATURE_DATA, t, offsetof(struct temperature_list_t, lock));
     enum error_e err = bytes_written == offsetof(struct temperature_list_t, lock) || bytes_written == 0 ? E_SUCCESS : E_ERROR;
     k_mutex_unlock(&t->lock);
     return err;
 }
 
-temperature_t sensor_value_to_temperature(struct sensor_value v)
+EXPOSE_FOR_TESTING temperature_t sensor_value_to_temperature(struct sensor_value v)
 {
     float whole = (float)v.val1;
     float fractional = (float)v.val2 / 1000000.0f;
@@ -96,7 +110,7 @@ temperature_t sensor_value_to_temperature(struct sensor_value v)
     return temperature;
 }
 
-enum error_e get_temperature_sample(struct temperature_sample_t *t)
+EXPOSE_FOR_TESTING enum error_e get_temperature_sample(struct temperature_sample_t *t)
 {
     if (t == NULL)
     {
@@ -120,26 +134,27 @@ enum error_e get_temperature_sample(struct temperature_sample_t *t)
     return E_SUCCESS;
 }
 
-enum error_e append_temperature_sample(struct temperature_list_t *t)
+EXPOSE_FOR_TESTING enum error_e append_temperature_sample(struct temperature_list_t *list, struct temperature_sample_t sample)
 {
-    if (t == NULL)
+    if (list == NULL)
     {
         return E_NULL_PTR;
     }
-    k_mutex_lock(&t->lock, K_FOREVER);
-    enum error_e err;
-    if (t->length == CONFIG_TEMPERATURE_LOGGER_BUFFER_SIZE)
+    k_mutex_lock(&list->lock, K_FOREVER);
+    enum error_e err = E_SUCCESS;
+    if (list->length == CONFIG_TEMPERATURE_LOGGER_BUFFER_SIZE)
     {
         err = E_NOBUFS;
         goto unlock;
     }
-    err = get_temperature_sample(&(t->data[t->length]));
+    list->data[list->length] = sample;
+    list->length++;
 unlock:
-    k_mutex_unlock(&t->lock);
+    k_mutex_unlock(&list->lock);
     return err;
 }
 
-struct temperature_sample_t interpolate(struct temperature_sample_t *t1, struct temperature_sample_t *t2, sys_minutes_t uptime)
+EXPOSE_FOR_TESTING struct temperature_sample_t interpolate(struct temperature_sample_t *t1, struct temperature_sample_t *t2, sys_minutes_t uptime)
 {
     struct temperature_sample_t result;
     result.uptime = uptime;
@@ -168,7 +183,7 @@ struct temperature_sample_t interpolate(struct temperature_sample_t *t1, struct 
     return result;
 }
 
-void init_merge_iterator(struct merge_iterator_t *m, struct temperature_list_t *src1, struct temperature_list_t *src2)
+EXPOSE_FOR_TESTING void init_merge_iterator(struct merge_iterator_t *m, struct temperature_list_t *src1, struct temperature_list_t *src2)
 {
     m->src1 = src1;
     m->src2 = src2;
@@ -210,7 +225,7 @@ void init_merge_iterator(struct merge_iterator_t *m, struct temperature_list_t *
     }
 }
 
-enum error_e merge_iterate(struct merge_iterator_t *m, struct temperature_sample_t **sample)
+EXPOSE_FOR_TESTING enum error_e merge_iterate(struct merge_iterator_t *m, struct temperature_sample_t **sample)
 {
 
     if (m->current_list == NULL)
@@ -260,7 +275,7 @@ enum error_e merge_iterate(struct merge_iterator_t *m, struct temperature_sample
     return E_SUCCESS;
 }
 
-enum error_e merge_without_decimation(struct temperature_list_t *src1, struct temperature_list_t *src2, struct temperature_list_t *dest)
+EXPOSE_FOR_TESTING enum error_e merge_without_decimation(struct temperature_list_t *src1, struct temperature_list_t *src2, struct temperature_list_t *dest)
 {
     if (src1 == NULL || src2 == NULL || dest == NULL)
     {
@@ -295,7 +310,7 @@ enum error_e merge_without_decimation(struct temperature_list_t *src1, struct te
 }
 
 // assumes that the total number of input elements is greater than the capacity of one list
-enum error_e merge_with_decimation(struct temperature_list_t *src1, struct temperature_list_t *src2, struct temperature_list_t *dest)
+EXPOSE_FOR_TESTING enum error_e merge_with_decimation(struct temperature_list_t *src1, struct temperature_list_t *src2, struct temperature_list_t *dest)
 {
     if (src1 == NULL || src2 == NULL || dest == NULL)
     {
@@ -348,7 +363,7 @@ enum error_e merge_with_decimation(struct temperature_list_t *src1, struct tempe
     return E_SUCCESS;
 }
 
-enum error_e merge_temperature_lists(struct temperature_list_t *src1, struct temperature_list_t *src2, struct temperature_list_t *dest)
+EXPOSE_FOR_TESTING enum error_e merge_temperature_lists(struct temperature_list_t *src1, struct temperature_list_t *src2, struct temperature_list_t *dest)
 {
     if (src1 == NULL || src2 == NULL || dest == NULL)
     {
@@ -370,3 +385,5 @@ enum error_e merge_temperature_lists(struct temperature_list_t *src1, struct tem
     TRIPLE_UNLOCK(&src1->lock, &src2->lock, &dest->lock);
     return err;
 }
+
+
